@@ -11,6 +11,7 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
    * {@inheritdoc}
    */
   protected function buildCreditCardForm(array $element, FormStateInterface $form_state) {
+    // @TODO: Do we really need this?
     $element = parent::buildCreditCardForm($element, $form_state);
     return $element;
   }
