@@ -60,8 +60,6 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    // Example credential. Also needs matching schema in
-    // config/schema/$your_module.schema.yml.
     $form['key'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Key'),
