@@ -1,13 +1,7 @@
-name: Commerce Payment Example
+name: Commerce Paycom
 type: module
-description: 'Provides payment gateway examples.'
+description: 'Provides paycom payment gateway.'
 package: Commerce
 # core: 8.x
 dependencies:
   - commerce:commerce_payment
-
-# Information added by Drupal.org packaging script on 2017-09-20
-version: '8.x-2.0'
-core: '8.x'
-project: 'commerce'
-datestamp: 1505910849
