@@ -1,4 +1,4 @@
-commerce_payment.commerce_payment_gateway.plugin.paycom_onsite:
+commerce_payment.commerce_payment_gateway.plugin.paycom_offsite:
   type: commerce_payment_gateway_configuration
   mapping:
     username:
