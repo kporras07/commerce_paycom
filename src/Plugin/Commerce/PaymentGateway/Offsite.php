@@ -77,6 +77,13 @@ class Offsite extends OffsitePaymentGatewayBase {
   }
 
   /**
+   * Returns payment gateway entity id.
+   */
+  public function getEntityId() {
+    return $this->entityId;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {

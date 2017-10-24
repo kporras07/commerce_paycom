@@ -48,7 +48,7 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
     if (!$payment_method) {
       $payment_method = PaymentMethod::create([
         'type' => 'credit_card',
-        'payment_gateway' => $this->plugin->getPluginId(),
+        'payment_gateway' => $this->plugin->getEntityId(),
       ]);
       $payment_method->save();
     }
