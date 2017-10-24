@@ -206,8 +206,6 @@ class Offsite extends OffsitePaymentGatewayBase {
     $this->assertPaymentMethod($payment_method);
 
     global $base_url;
-    // Perform the create payment request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
     // Remember to take into account $capture when performing the request.
     $amount = $payment->getAmount();
     $remote_id = $payment_method->getRemoteId();
@@ -327,8 +325,6 @@ class Offsite extends OffsitePaymentGatewayBase {
     // If not specified, capture the entire amount.
     $amount = $amount ?: $payment->getAmount();
 
-    // Perform the capture request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
     $remote_id = $payment->getRemoteId();
     $parameters = [
       'username' => $this->getUsername(),
@@ -353,8 +349,6 @@ class Offsite extends OffsitePaymentGatewayBase {
    */
   public function voidPayment(PaymentInterface $payment) {
     $this->assertPaymentState($payment, ['authorization']);
-    // Perform the void request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
     $remote_id = $payment->getRemoteId();
     $parameters = [
       'username' => $this->getUsername(),
@@ -383,8 +377,6 @@ class Offsite extends OffsitePaymentGatewayBase {
 
     $payment_method = $payment->getPaymentMethod();
 
-    // Perform the refund request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
     $remote_id = $payment->getRemoteId();
     $number = $amount->getNumber();
     $parameters = [
@@ -417,16 +409,7 @@ class Offsite extends OffsitePaymentGatewayBase {
   /**
    * {@inheritdoc}
    */
-  public function onReturn(OrderInterface $order, Request $request) {
-    // @TODO: Implement. Is necessary???
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
-    // The expected keys are payment gateway specific and usually match
-    // the PaymentMethodAddForm form elements. They are expected to be valid.
     $required_keys = [
       'type',
       'number',
@@ -457,9 +440,6 @@ class Offsite extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function deletePaymentMethod(PaymentMethodInterface $payment_method) {
-    // Delete the remote record here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
-    // Delete the local entity.
     $payment_method->delete();
   }
 
