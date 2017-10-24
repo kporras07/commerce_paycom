@@ -13,7 +13,7 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 
 /**
  * Provides the On-site payment gateway.
@@ -41,7 +41,14 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
   protected $client;
 
   /**
-   * Constructs a new PaymentGatewayBase object.
+   * Url.
+   *
+   * @var string
+   */
+  protected $url;
+
+  /**
+   * Constructs a new Onsite object.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -57,12 +64,13 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    *   The payment method type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time.
-   * @param \GuzzleHttp\Client $client
+   * @param \GuzzleHttp\ClientInterface $client
    *   The http client.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, Client $client) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ClientInterface $client) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
     $this->client = $client;
+    $this->url = 'https://paycom.credomatic.com/PayComBackEndWeb/common/requestPaycomService.go';
   }
 
   /**
@@ -86,6 +94,7 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    */
   public function defaultConfiguration() {
     return [
+      'username' => '',
       'key' => '',
       'key_id' => '',
       'processor_id' => '',
@@ -97,6 +106,13 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
+
+    $form['username'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Username'),
+      '#default_value' => $this->configuration['username'],
+      '#required' => TRUE,
+    ];
 
     $form['key'] = [
       '#type' => 'textfield',
@@ -123,6 +139,34 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
   }
 
   /**
+   * Returns Username.
+   */
+  protected function getUsername() {
+    return $this->configuration['username'] ?: '';
+  }
+
+  /**
+   * Returns Key.
+   */
+  protected function getKey() {
+    return $this->configuration['key'] ?: '';
+  }
+
+  /**
+   * Returns Key ID.
+   */
+  protected function getKeyId() {
+    return $this->configuration['key_id'] ?: '';
+  }
+
+  /**
+   * Returns Processor ID.
+   */
+  protected function getProcessorId() {
+    return $this->configuration['processor_id'] ?: '';
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
@@ -130,6 +174,7 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
 
     if (!$form_state->getErrors()) {
       $values = $form_state->getValue($form['#parents']);
+      $this->configuration['username'] = $values['username'];
       $this->configuration['key'] = $values['key'];
       $this->configuration['key_id'] = $values['key_id'];
       $this->configuration['processor_id'] = $values['processor_id'];
@@ -140,32 +185,63 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    * {@inheritdoc}
    */
   public function createPayment(PaymentInterface $payment, $capture = TRUE) {
-    // @TODO: Implement.
     $this->assertPaymentState($payment, ['new']);
     $payment_method = $payment->getPaymentMethod();
     $this->assertPaymentMethod($payment_method);
 
-    // Add a built in test for testing decline exceptions.
-    /** @var \Drupal\address\Plugin\Field\FieldType\AddressItem $billing_address */
-    if ($billing_address = $payment_method->getBillingProfile()) {
-      $billing_address = $payment_method->getBillingProfile()->get('address')->first();
-      if ($billing_address->getPostalCode() == '53140') {
-        throw new HardDeclineException('The payment was declined');
+    try {
+      global $base_url;
+      // Perform the create payment request here, throw an exception if it fails.
+      // See \Drupal\commerce_payment\Exception for the available exceptions.
+      // Remember to take into account $capture when performing the request.
+      $amount = $payment->getAmount();
+      $remote_id = $payment_method->getRemoteId();
+
+      $parameters = [
+        'username' => $this->getUsername(),
+        'type' => 'auth',
+        'key_id' => $this->getKeyId(),
+        'hash' => $this->getEntryHash($payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time),
+        'time' => $this->time,
+        'redirect' => $base_url . '/commerce_paycom/commerce_paycom_response',
+        'ccnumber' => $payment_method->card_number,
+        'ccexp' => $payment_method->card_exp_month . $payment_method->card_exp_year,
+        'amount' => $payment->getAmount()->getNumber(),
+        'orderid' => $payment->getOrderId(),
+        // @TODO: Is this allowed?
+        'cvv' => $payment->security_code,
+        'processor_id' => $this->getProcessorId(),
+      ];
+      $result = $this->doPost($parameters);
+      dpm($result, 'RES');
+      // @TODO: Evaluate result.
+      $next_state = $capture ? 'completed' : 'authorization';
+      $payment->setState($next_state);
+      $payment->setRemoteId($remote_id);
+      $payment->save();
+      if ($capture) {
+        $this->capturePayment($payment);
       }
     }
+    catch (\Exception $e) {
+    }
+  }
 
-    // Perform the create payment request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
-    // Remember to take into account $capture when performing the request.
-    $amount = $payment->getAmount();
-    $payment_method_token = $payment_method->getRemoteId();
-    // The remote ID returned by the request.
-    $remote_id = '123456';
-    $next_state = $capture ? 'completed' : 'authorization';
+  /**
+   * Do POST Request.
+   */
+  protected function doPost($parameters) {
+    $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
+    $data = http_build_query($parameters);
+    return $this->client->post($this->getUrl(), $headers, $body, 5);
+  }
 
-    $payment->setState($next_state);
-    $payment->setRemoteId($remote_id);
-    $payment->save();
+  /**
+   * Returns entry hash from provided values.
+   */
+  protected function getEntryHash($order_id, $amount, $time) {
+    $string = $orderid . '|' . $amount . '|' . $time . '|' . $this->getKey();
+    return md5($string);
   }
 
   /**
@@ -266,6 +342,8 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
     $payment_method->card_type = $payment_details['type'];
     // Only the last 4 numbers are safe to store.
     $payment_method->card_number = substr($payment_details['number'], -4);
+    // @TODO: Is this allowed?
+    $payment_method->security_code = $payment_details['security_code'];
     $payment_method->card_exp_month = $payment_details['expiration']['month'];
     $payment_method->card_exp_year = $payment_details['expiration']['year'];
     $expires = CreditCard::calculateExpirationTimestamp($payment_details['expiration']['month'], $payment_details['expiration']['year']);

@@ -1,6 +1,9 @@
 commerce_payment.commerce_payment_gateway.plugin.paycom_onsite:
   type: commerce_payment_gateway_configuration
   mapping:
+    username:
+      type: string
+      label: 'Username'
     key:
       type: string
       label: 'Key'
