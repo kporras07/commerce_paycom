@@ -3,12 +3,14 @@
 namespace Drupal\commerce_paycom\PluginForm\Offsite;
 
 use Drupal\commerce_payment\Entity\PaymentMethod;
-use Drupal\commerce_payment\Entity\PaymentMethodTypeInterface;
 use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PluginForm\PaymentMethodAddForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
+/**
+ * PaymentOffsiteForm class.
+ */
 class PaymentOffsiteForm extends PaymentMethodAddForm {
 
   /**
@@ -31,12 +33,12 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
     return $form;
   }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
-      $this->validateCreditCardForm($form['payment_details'], $form_state);
-    }
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+    $this->validateCreditCardForm($form['payment_details'], $form_state);
+  }
 
   /**
    * {@inheritdoc}
@@ -59,7 +61,7 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
     // The payment method form is customer facing. For security reasons
     // the returned errors need to be more generic.
     try {
-      
+
       $this->entity->payment_method = $payment_method;
       $payment_gateway_plugin->createPaymentMethod($payment_method, $values['payment_details']);
       $payment_gateway_plugin->createPayment($this->entity, $values['payment_details'], TRUE);

@@ -5,7 +5,6 @@ namespace Drupal\commerce_paycom\Plugin\Commerce\PaymentGateway;
 use Drupal\commerce_payment\CreditCard;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
-use Drupal\commerce_payment\Exception\HardDeclineException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
@@ -16,8 +15,6 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\commerce_order\Entity\OrderInterface;
-use Symfony\Component\HttpFoundation\Request;
 use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -200,7 +197,7 @@ class Offsite extends OffsitePaymentGatewayBase {
   /**
    * {@inheritdoc}
    */
-  public function createPayment(PaymentInterface $payment,  array $payment_details, $capture = TRUE) {
+  public function createPayment(PaymentInterface $payment, array $payment_details, $capture = TRUE) {
     $this->assertPaymentState($payment, ['new']);
     $payment_method = $payment->getPaymentMethod();
     $this->assertPaymentMethod($payment_method);
@@ -213,7 +210,12 @@ class Offsite extends OffsitePaymentGatewayBase {
       'username' => $this->getUsername(),
       'type' => 'auth',
       'key_id' => $this->getKeyId(),
-      'hash' => $this->getHash([$payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time->getRequestTime(), $this->getKey()]),
+      'hash' => $this->getHash([
+        $payment->getOrderId(),
+        $payment->getAmount()->getNumber(),
+        $this->time->getRequestTime(),
+        $this->getKey(),
+      ]),
       'time' => $this->time->getRequestTime(),
       'ccnumber' => $payment_details['number'],
       'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
@@ -236,8 +238,11 @@ class Offsite extends OffsitePaymentGatewayBase {
   /**
    * Validate response array formatted from Paycom.
    *
-   * @param  array  $response The response array.
-   * @return bool Whether response is valid or not.
+   * @param array $response
+   *   The response array.
+   *
+   * @return bool
+   *   Whether response is valid or not.
    */
   protected function validateResponse(array $response) {
     if (isset($response['response'])) {
@@ -330,7 +335,12 @@ class Offsite extends OffsitePaymentGatewayBase {
       'username' => $this->getUsername(),
       'type' => 'sale',
       'key_id' => $this->getKeyId(),
-      'hash' => $this->getHash([$payment->getOrderId(), $amount->getNumber(), $this->time->getRequestTime(), $this->getKey()]),
+      'hash' => $this->getHash([
+        $payment->getOrderId(),
+        $amount->getNumber(),
+        $this->time->getRequestTime(),
+        $this->getKey(),
+      ]),
       'time' => $this->time->getRequestTime(),
       'transactionid' => $remote_id,
       'amount' => $amount->getNumber(),
@@ -354,7 +364,12 @@ class Offsite extends OffsitePaymentGatewayBase {
       'username' => $this->getUsername(),
       'type' => 'void',
       'key_id' => $this->getKeyId(),
-      'hash' => $this->getHash([$payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time->getRequestTime(), $this->getKey()]),
+      'hash' => $this->getHash([
+        $payment->getOrderId(),
+        $payment->getAmount()->getNumber(),
+        $this->time->getRequestTime(),
+        $this->getKey(),
+      ]),
       'time' => $this->time->getRequestTime(),
       'transactionid' => $remote_id,
       'processor_id' => $this->getProcessorId(),
@@ -383,7 +398,12 @@ class Offsite extends OffsitePaymentGatewayBase {
       'username' => $this->getUsername(),
       'type' => 'refound',
       'key_id' => $this->getKeyId(),
-      'hash' => $this->getHash([$payment->getOrderId(), $number, $this->time->getRequestTime(), $this->getKey()]),
+      'hash' => $this->getHash([
+        $payment->getOrderId(),
+        $number,
+        $this->time->getRequestTime(),
+        $this->getKey(),
+      ]),
       'time' => $this->time->getRequestTime(),
       'ccnumber' => $payment_details['number'],
       'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
