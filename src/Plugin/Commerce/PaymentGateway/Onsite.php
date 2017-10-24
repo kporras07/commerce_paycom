@@ -324,6 +324,7 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
     // @TODO: Implement.
+    // @TODO: Breakpoint here to understand what happens with payment_details.
     // The expected keys are payment gateway specific and usually match
     // the PaymentMethodAddForm form elements. They are expected to be valid.
     $required_keys = [
