@@ -214,12 +214,13 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
         'hash' => $this->getEntryHash($payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time->getRequestTime()),
         'time' => $this->time->getRequestTime(),
         'redirect' => $base_url . '/commerce_paycom/commerce_paycom_response',
-        'ccnumber' => $payment_method->card_number,
+        // @TODO: Where??
+        'ccnumber' => '',
         'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
         'amount' => $payment->getAmount()->getNumber(),
         'orderid' => $payment->getOrderId(),
-        // @TODO: Is this allowed?
-        'cvv' => $payment_method->security_code,
+        // @TODO: Where??
+        'cvv' => '',
         'processor_id' => $this->getProcessorId(),
       ];
       dpm($parameters, 'PARAMS');
@@ -352,8 +353,6 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
     $payment_method->card_type = $payment_details['type'];
     // Only the last 4 numbers are safe to store.
     $payment_method->card_number = substr($payment_details['number'], -4);
-    // @TODO: Is this allowed?
-    $payment_method->security_code = $payment_details['security_code'];
     $payment_method->card_exp_month = $payment_details['expiration']['month'];
     $payment_method->card_exp_year = $payment_details['expiration']['year'];
     $expires = CreditCard::calculateExpirationTimestamp($payment_details['expiration']['month'], $payment_details['expiration']['year']);
