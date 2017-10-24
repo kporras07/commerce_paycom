@@ -21,7 +21,6 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
     $payment = $this->entity;
     /** @var \Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayInterface $payment_gateway_plugin */
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    $redirect_url = Url::fromRoute('commerce_paycom.response_handler')->toString();
 
     $form['payment_details'] = [];
     $form['payment_details'] = $this->buildCreditCardForm($form['payment_details'], $form_state);
