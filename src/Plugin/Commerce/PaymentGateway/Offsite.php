@@ -284,7 +284,7 @@ class Offsite extends OffsitePaymentGatewayBase {
     ];
     $hash = $this->getHash($hash_elements);
     if ($hash !== $response['hash']) {
-      //throw new InvalidResponseException($this->t('Hash can not be verified'));
+      throw new InvalidResponseException($this->t('Hash can not be verified'));
     }
 
     return TRUE;
