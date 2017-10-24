@@ -170,6 +170,13 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
   }
 
   /**
+   * Returns url.
+   */
+  protected function getUrl() {
+    return $this->url;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
@@ -204,15 +211,15 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
         'username' => $this->getUsername(),
         'type' => 'auth',
         'key_id' => $this->getKeyId(),
-        'hash' => $this->getEntryHash($payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time),
-        'time' => $this->time,
+        'hash' => $this->getEntryHash($payment->getOrderId(), $payment->getAmount()->getNumber(), $this->time->getRequestTime()),
+        'time' => $this->time->getRequestTime(),
         'redirect' => $base_url . '/commerce_paycom/commerce_paycom_response',
         'ccnumber' => $payment_method->card_number,
-        'ccexp' => $payment_method->card_exp_month . $payment_method->card_exp_year,
+        'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
         'amount' => $payment->getAmount()->getNumber(),
         'orderid' => $payment->getOrderId(),
         // @TODO: Is this allowed?
-        'cvv' => $payment->security_code,
+        'cvv' => $payment_method->security_code,
         'processor_id' => $this->getProcessorId(),
       ];
       $result = $this->doPost($parameters);
@@ -236,14 +243,14 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
   protected function doPost($parameters) {
     $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
     $data = http_build_query($parameters);
-    return $this->client->post($this->getUrl(), $headers, $body, 5);
+    return $this->client->post($this->getUrl(), $headers, $data, 5);
   }
 
   /**
    * Returns entry hash from provided values.
    */
   protected function getEntryHash($order_id, $amount, $time) {
-    $string = $orderid . '|' . $amount . '|' . $time . '|' . $this->getKey();
+    $string = $order_id . '|' . $amount . '|' . $time . '|' . $this->getKey();
     return md5($string);
   }
 
@@ -337,11 +344,6 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
       // $owner->save();
     }
 
-    // Perform the create request here, throw an exception if it fails.
-    // See \Drupal\commerce_payment\Exception for the available exceptions.
-    // You might need to do different API requests based on whether the
-    // payment method is reusable: $payment_method->isReusable().
-    // Non-reusable payment methods usually have an expiration timestamp.
     $payment_method->card_type = $payment_details['type'];
     // Only the last 4 numbers are safe to store.
     $payment_method->card_number = substr($payment_details['number'], -4);
