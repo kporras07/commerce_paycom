@@ -222,8 +222,12 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
         'cvv' => $payment_method->security_code,
         'processor_id' => $this->getProcessorId(),
       ];
+      dpm($parameters, 'PARAMS');
       $result = $this->doPost($parameters);
-      dpm($result, 'RES');
+      dpm($result->getBody()->getContents(), 'RESBODY');
+      dpm($result->getHeaders(), 'RESHEAD');
+      dpm($result->getStatusCode(), 'RESCODE');
+      dpm($result->getReasonPhrase(), 'RESPhrase');
       // @TODO: Evaluate result.
       $next_state = $capture ? 'completed' : 'authorization';
       $payment->setState($next_state);
