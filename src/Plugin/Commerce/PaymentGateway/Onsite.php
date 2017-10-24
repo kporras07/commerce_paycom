@@ -226,9 +226,6 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
       dpm($parameters, 'PARAMS');
       $result = $this->doPost($parameters);
       dpm($result->getBody()->getContents(), 'RESBODY');
-      dpm($result->getHeaders(), 'RESHEAD');
-      dpm($result->getStatusCode(), 'RESCODE');
-      dpm($result->getReasonPhrase(), 'RESPhrase');
       // @TODO: Evaluate result.
       $next_state = $capture ? 'completed' : 'authorization';
       $payment->setState($next_state);
@@ -325,7 +322,6 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
     // @TODO: Implement.
-    // @TODO: Breakpoint here to understand what happens with payment_details.
     // The expected keys are payment gateway specific and usually match
     // the PaymentMethodAddForm form elements. They are expected to be valid.
     $required_keys = [
@@ -340,16 +336,7 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
       }
     }
 
-    // If the remote API needs a remote customer to be created.
-    $owner = $payment_method->getOwner();
-    if ($owner && $owner->isAuthenticated()) {
-      $customer_id = $this->getRemoteCustomerId($owner);
-      // @TODO: Check this!
-      // If $customer_id is empty, create the customer remotely and then do
-      // $this->setRemoteCustomerId($owner, $customer_id);
-      // $owner->save();
-    }
-
+    $payment_method->setReusable(FALSE);
     $payment_method->card_type = $payment_details['type'];
     // Only the last 4 numbers are safe to store.
     $payment_method->card_number = substr($payment_details['number'], -4);
@@ -358,7 +345,7 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
     $expires = CreditCard::calculateExpirationTimestamp($payment_details['expiration']['month'], $payment_details['expiration']['year']);
     // @TODO: WHAT???
     // The remote ID returned by the request.
-    $remote_id = '789';
+    $remote_id = '-1';
 
     $payment_method->setRemoteId($remote_id);
     $payment_method->setExpiresTime($expires);
