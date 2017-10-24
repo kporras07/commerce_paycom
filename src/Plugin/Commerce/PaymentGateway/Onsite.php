@@ -14,6 +14,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use GuzzleHttp\ClientInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the On-site payment gateway.
@@ -106,6 +107,8 @@ class Onsite extends OnsitePaymentGatewayBase implements OnsiteInterface {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
+    $form['mode']['#default_value'] = 'live';
+    $form['mode']['#access'] = FALSE;
 
     $form['username'] = [
       '#type' => 'textfield',
