@@ -213,6 +213,7 @@ class Offsite extends OffsitePaymentGatewayBase {
     // Remember to take into account $capture when performing the request.
     $amount = $payment->getAmount();
     $remote_id = $payment_method->getRemoteId();
+    $time = $this->time->getRequestTime();
     $parameters = [
       'username' => $this->getUsername(),
       'type' => 'auth',
@@ -220,10 +221,10 @@ class Offsite extends OffsitePaymentGatewayBase {
       'hash' => $this->getHash([
         $payment->getOrderId(),
         $payment->getAmount()->getNumber(),
-        $this->time->getRequestTime(),
+        $time,
         $this->getKey(),
       ]),
-      'time' => $this->time->getRequestTime(),
+      'time' => $time,
       'ccnumber' => $payment_details['number'],
       'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
       'amount' => $payment->getAmount()->getNumber(),
