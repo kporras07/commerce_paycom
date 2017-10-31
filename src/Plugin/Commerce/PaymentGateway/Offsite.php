@@ -308,8 +308,10 @@ class Offsite extends OffsitePaymentGatewayBase {
    */
   protected function doPost($parameters) {
     $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
-    $data = http_build_query($parameters);
-    $response = $this->client->post($this->getUrl(), $headers, $data, 5);
+    $response = $this->client->request('POST', $this->getUrl(), [
+      'form_params' => $parameters,
+      'timeout' => 5,
+    ]);
     $contents = $response->getBody()->getContents();
     $contents = substr($contents, 1);
     $response_data = explode('&', $contents);
@@ -455,7 +457,8 @@ class Offsite extends OffsitePaymentGatewayBase {
     // Only the last 4 numbers are safe to store.
     $payment_method->card_number = substr($payment_details['number'], -4);
     $payment_method->card_exp_month = $payment_details['expiration']['month'];
-    $payment_method->card_exp_year = $payment_details['expiration']['year'];
+    // Last 2 digits of year.
+    $payment_method->card_exp_year = substr($payment_details['expiration']['year'], -2);
     $expires = CreditCard::calculateExpirationTimestamp($payment_details['expiration']['month'], $payment_details['expiration']['year']);
     $remote_id = '-1';
 
