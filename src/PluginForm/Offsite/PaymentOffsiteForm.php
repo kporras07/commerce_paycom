@@ -63,7 +63,7 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
 
       $this->entity->payment_method = $payment_method;
       $payment_gateway_plugin->createPaymentMethod($payment_method, $values['payment_details']);
-      $payment_gateway_plugin->createPayment($this->entity, $values['payment_details'], TRUE);
+      $payment_gateway_plugin->createPayment($this->entity, $values['payment_details'], $form['#capture']);
     }
     catch (DeclineException $e) {
       \Drupal::logger('commerce_payment')->warning($e->getMessage());
