@@ -212,6 +212,7 @@ class Offsite extends OffsitePaymentGatewayBase {
     global $base_url;
     // Remember to take into account $capture when performing the request.
     $amount = $payment->getAmount();
+    $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
     $remote_id = $payment_method->getRemoteId();
     $time = $this->time->getRequestTime();
     $parameters = [
@@ -220,14 +221,14 @@ class Offsite extends OffsitePaymentGatewayBase {
       'key_id' => $this->getKeyId(),
       'hash' => $this->getHash([
         $payment->getOrderId(),
-        $payment->getAmount()->getNumber(),
+        $amount_number,
         $time,
         $this->getKey(),
       ]),
       'time' => $time,
       'ccnumber' => $payment_details['number'],
       'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
-      'amount' => $payment->getAmount()->getNumber(),
+      'amount' => $amount_number,
       'orderid' => $payment->getOrderId(),
       'cvv' => $payment_details['security_code'],
       'processor_id' => $this->getProcessorId(),
@@ -341,19 +342,20 @@ class Offsite extends OffsitePaymentGatewayBase {
     $amount = $amount ?: $payment->getAmount();
 
     $remote_id = $payment->getRemoteId();
+    $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
     $parameters = [
       'username' => $this->getUsername(),
       'type' => 'sale',
       'key_id' => $this->getKeyId(),
       'hash' => $this->getHash([
         $payment->getOrderId(),
-        $amount->getNumber(),
+        $amount_number,
         $this->time->getRequestTime(),
         $this->getKey(),
       ]),
       'time' => $this->time->getRequestTime(),
       'transactionid' => $remote_id,
-      'amount' => $amount->getNumber(),
+      'amount' => $amount_number,
       'processor_id' => $this->getProcessorId(),
       'ccnumber' => $remote_id,
     ];
@@ -369,6 +371,7 @@ class Offsite extends OffsitePaymentGatewayBase {
    */
   public function voidPayment(PaymentInterface $payment) {
     $this->assertPaymentState($payment, ['authorization']);
+    $amount_number = number_format(round($payment->getAmount()->getNumber(), 2), 2, '.', '');
     $remote_id = $payment->getRemoteId();
     $parameters = [
       'username' => $this->getUsername(),
@@ -376,7 +379,7 @@ class Offsite extends OffsitePaymentGatewayBase {
       'key_id' => $this->getKeyId(),
       'hash' => $this->getHash([
         $payment->getOrderId(),
-        $payment->getAmount()->getNumber(),
+        $amount_number,
         $this->time->getRequestTime(),
         $this->getKey(),
       ]),
@@ -398,26 +401,26 @@ class Offsite extends OffsitePaymentGatewayBase {
     $this->assertPaymentState($payment, ['completed', 'partially_refunded']);
     // If not specified, refund the entire amount.
     $amount = $amount ?: $payment->getAmount();
+    $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
     $this->assertRefundAmount($payment, $amount);
 
     $payment_method = $payment->getPaymentMethod();
 
     $remote_id = $payment->getRemoteId();
-    $number = $amount->getNumber();
     $parameters = [
       'username' => $this->getUsername(),
       'type' => 'refound',
       'key_id' => $this->getKeyId(),
       'hash' => $this->getHash([
         $payment->getOrderId(),
-        $number,
+        $amount_number,
         $this->time->getRequestTime(),
         $this->getKey(),
       ]),
       'time' => $this->time->getRequestTime(),
       'ccnumber' => $payment_details['number'],
       'ccexp' => $payment_method->card_exp_month->value . $payment_method->card_exp_year->value,
-      'amount' => $number,
+      'amount' => $amount_number,
       'processor_id' => $this->getProcessorId(),
     ];
     $result = $this->doPost($parameters);
