@@ -256,10 +256,10 @@ class Offsite extends OffsitePaymentGatewayBase {
   protected function validateResponse(array $response) {
     if (isset($response['response'])) {
       if ($response['response'] == 2) {
-        throw new DeclineException($this->t('Denied transaction. Text: @text', array('@text' => $response['responsetext'])));
+        throw new DeclineException($this->t('Denied transaction. Text: @text', ['@text' => $response['responsetext']]));
       }
       elseif ($response['response'] == 3) {
-        throw new AuthenticationException($this->t('Data error in the transaction or system error. Text: @text', array('@text' => $response['responsetext'])));
+        throw new AuthenticationException($this->t('Data error in the transaction or system error. Text: @text', ['@text' => $response['responsetext']]));
       }
     }
     else {

@@ -6,7 +6,6 @@ use Drupal\commerce_payment\Entity\PaymentMethod;
 use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PluginForm\PaymentMethodAddForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
 
 /**
  * PaymentOffsiteForm class.
