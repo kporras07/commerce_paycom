@@ -13,3 +13,6 @@ commerce_payment.commerce_payment_gateway.plugin.paycom_offsite:
     processor_id:
       type: string
       label: 'Processor ID'
+    currency:
+      type: string
+      label: 'Currency'

@@ -108,6 +108,7 @@ class Offsite extends OffsitePaymentGatewayBase {
       'key' => '',
       'key_id' => '',
       'processor_id' => '',
+      'currency' => '',
     ] + parent::defaultConfiguration();
   }
 
@@ -148,6 +149,22 @@ class Offsite extends OffsitePaymentGatewayBase {
       '#required' => FALSE,
     ];
 
+    $form['currency'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Currency'),
+      '#options' => [
+        'COP' => 'COP',
+        'CRC' => 'CRC',
+        'SVC' => 'SVC',
+        'GTQ' => 'GTQ',
+        'HNL' => 'HNL',
+        'NIO' => 'NIO',
+        'PAB' => 'PAB',
+      ],
+      '#default_value' => $this->configuration['currency'],
+      '#required' => TRUE,
+    ];
+
     return $form;
   }
 
@@ -180,6 +197,13 @@ class Offsite extends OffsitePaymentGatewayBase {
   }
 
   /**
+   * Returns Currency.
+   */
+  protected function getCurrency() {
+    return $this->configuration['currency'] ?: '';
+  }
+
+  /**
    * Returns url.
    */
   protected function getUrl() {
@@ -198,6 +222,7 @@ class Offsite extends OffsitePaymentGatewayBase {
       $this->configuration['key'] = $values['key'];
       $this->configuration['key_id'] = $values['key_id'];
       $this->configuration['processor_id'] = $values['processor_id'];
+      $this->configuration['currency'] = $values['currency'];
     }
   }
 
@@ -212,6 +237,12 @@ class Offsite extends OffsitePaymentGatewayBase {
     global $base_url;
     // Remember to take into account $capture when performing the request.
     $amount = $payment->getAmount();
+    if ($amount->getCurrencyCode() !== $this->getCurrency()) {
+      throw new AuthenticationException($this->t('Payment currency @currency does not match gateway currency @gateway_currency', [
+        '@currency' => $amount->getCurrencyCode(),
+        '@gateway_currency' => $this->getCurrency(),
+      ]));
+    }
     $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
     $remote_id = $payment_method->getRemoteId();
     $time = $this->time->getRequestTime();
