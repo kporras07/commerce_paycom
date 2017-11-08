@@ -23,6 +23,11 @@ class PaymentOffsiteForm extends PaymentMethodAddForm {
 
     $form['payment_details'] = [];
     $form['payment_details'] = $this->buildCreditCardForm($form['payment_details'], $form_state);
+    $form['payment_details']['expiration'] = array_merge(['title' => [
+      '#type' => 'item',
+      '#markup' => t('Expiration'),
+    ]], $form['payment_details']['expiration']);
+    $form['payment_details']['security_code']['#title'] = t('Security Code');
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Submit'),
