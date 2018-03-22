@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_paycom\Plugin\Commerce\PaymentGateway;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\CreditCard;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
@@ -15,18 +16,18 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides the Off-site Redirect payment gateway.
  *
  * @CommercePaymentGateway(
- *   id = "paycom_offsite",
- *   label = "Paycom (Off-site)",
+ *   id = "paycom",
+ *   label = "Paycom (Redirect to paycom)",
  *   display_label = "Paycom",
  *   forms = {
- *     "offsite-payment" = "Drupal\commerce_paycom\PluginForm\Offsite\PaymentOffsiteForm",
+ *     "offsite-payment" = "Drupal\commerce_paycom\PluginForm\PaycomForm",
  *   },
  *   payment_method_types = {"credit_card"},
  *   credit_card_types = {
@@ -34,14 +35,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   },
  * )
  */
-class Offsite extends OffsitePaymentGatewayBase {
-
-  /**
-   * HTTP Client.
-   *
-   * @var \GuzzleHttp\Client
-   */
-  protected $client;
+class Paycom extends OffsitePaymentGatewayBase {
 
   /**
    * Url.
@@ -67,36 +61,10 @@ class Offsite extends OffsitePaymentGatewayBase {
    *   The payment method type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time.
-   * @param \GuzzleHttp\ClientInterface $client
-   *   The http client.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ClientInterface $client) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
-    $this->client = $client;
     $this->url = 'https://paycom.credomatic.com/PayComBackEndWeb/common/requestPaycomService.go';
-  }
-
-  /**
-   * Returns payment gateway entity id.
-   */
-  public function getEntityId() {
-    return $this->entityId;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('plugin.manager.commerce_payment_type'),
-      $container->get('plugin.manager.commerce_payment_method_type'),
-      $container->get('datetime.time'),
-      $container->get('http_client')
-    );
   }
 
   /**
@@ -171,42 +139,42 @@ class Offsite extends OffsitePaymentGatewayBase {
   /**
    * Returns Username.
    */
-  protected function getUsername() {
+  public function getUsername() {
     return $this->configuration['username'] ?: '';
   }
 
   /**
    * Returns Key.
    */
-  protected function getKey() {
+  public function getKey() {
     return $this->configuration['key'] ?: '';
   }
 
   /**
    * Returns Key ID.
    */
-  protected function getKeyId() {
+  public function getKeyId() {
     return $this->configuration['key_id'] ?: '';
   }
 
   /**
    * Returns Processor ID.
    */
-  protected function getProcessorId() {
+  public function getProcessorId() {
     return $this->configuration['processor_id'] ?: '';
   }
 
   /**
    * Returns Currency.
    */
-  protected function getCurrency() {
+  public function getCurrency() {
     return $this->configuration['currency'] ?: '';
   }
 
   /**
    * Returns url.
    */
-  protected function getUrl() {
+  public function getUrl() {
     return $this->url;
   }
 
@@ -226,6 +194,29 @@ class Offsite extends OffsitePaymentGatewayBase {
     }
   }
 
+  public function onReturn(OrderInterface $order, Request $request) {
+    $response = $request->query->all();
+    if ($this->validateResponse($response)) {
+      $amount = $order->getTotalPrice();
+      $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
+      if ($response['amount'] == $amount_number) {
+        $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+        $payment = $payment_storage->create([
+          'state' => 'authorization',
+          'amount' => $amount,
+          'payment_gateway' => $this->entityId,
+          'order_id' => $order->id(),
+          'test' => FALSE,
+          'remote_id' => $response['transactionid'],
+          'authorized' => REQUEST_TIME,
+        ]);
+        $payment->save();
+      }
+      else {
+        throw new InvalidResponseException($this->t('Amount was changed in an unauthorized way'));
+      }
+    }
+  }
   /**
    * {@inheritdoc}
    */
@@ -358,7 +349,7 @@ class Offsite extends OffsitePaymentGatewayBase {
   /**
    * Returns hash from provided values.
    */
-  protected function getHash($values) {
+  public function getHash($values) {
     $string = implode('|', $values);
     return md5($string);
   }
