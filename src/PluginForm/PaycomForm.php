@@ -2,8 +2,6 @@
 
 namespace Drupal\commerce_paycom\PluginForm;
 
-use Drupal\commerce_payment\Entity\PaymentMethod;
-use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -104,6 +102,9 @@ class PaycomForm extends BasePaymentOffsiteForm {
     return $form;
   }
 
+  /**
+   * Process callback for form.
+   */
   public static function processForm(array $element, FormStateInterface $form_state, &$complete_form) {
     $complete_form['#action'] = $complete_form['payment_process']['offsite_payment']['url']['#value'];
     return $element;

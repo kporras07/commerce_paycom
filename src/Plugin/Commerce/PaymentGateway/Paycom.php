@@ -16,7 +16,6 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -194,6 +193,9 @@ class Paycom extends OffsitePaymentGatewayBase {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function onReturn(OrderInterface $order, Request $request) {
     $response = $request->query->all();
     if ($this->validateResponse($response)) {
@@ -217,6 +219,7 @@ class Paycom extends OffsitePaymentGatewayBase {
       }
     }
   }
+
   /**
    * {@inheritdoc}
    */
