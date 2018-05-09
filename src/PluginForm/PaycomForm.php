@@ -26,16 +26,26 @@ class PaycomForm extends BasePaymentOffsiteForm {
       '#type' => 'textfield',
       '#title' => t('Credit Card Number'),
       '#name' => 'ccnumber',
+      '#attributes' => [
+        'autocomplete' => 'off',
+      ],
     ];
     $form['ccexp'] = [
       '#type' => 'textfield',
       '#title' => t('Credit Card Expiration'),
       '#name' => 'ccexp',
+      '#attributes' => [
+        'placeholder' => 'mmyy',
+        'autocomplete' => 'off',
+      ],
     ];
     $form['cvv'] = [
       '#type' => 'textfield',
       '#title' => t('Credit Card CVV'),
       '#name' => 'cvv',
+      '#attributes' => [
+        'autocomplete' => 'off',
+      ],
     ];
     $form['submit'] = [
       '#type' => 'submit',
