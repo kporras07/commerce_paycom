@@ -86,7 +86,6 @@ class Paycom extends OffsitePaymentGatewayBase {
     $form = parent::buildConfigurationForm($form, $form_state);
     $form['mode']['#default_value'] = 'live';
     $form['mode']['#access'] = FALSE;
-    $form['display_label']['#access'] = FALSE;
 
     $form['username'] = [
       '#type' => 'textfield',
