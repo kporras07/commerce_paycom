@@ -9,14 +9,18 @@ use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
+use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\Exception\InvalidResponseException;
 use Drupal\commerce_payment\Exception\AuthenticationException;
 use Drupal\commerce_payment\Exception\DeclineException;
+use Drupal\commerce_paycom\Event\CommercePaycomPaymenGatewayExceptionEvent;
 use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the Off-site Redirect payment gateway.
@@ -43,6 +47,14 @@ class Paycom extends OffsitePaymentGatewayBase {
    */
   protected $url;
 
+
+  /**
+   * Event dispatcher.
+   *
+   * @var \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher
+   */
+  protected $eventDispatcher;
+
   /**
    * Constructs a new Onsite object.
    *
@@ -60,11 +72,31 @@ class Paycom extends OffsitePaymentGatewayBase {
    *   The payment method type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time.
+   * @param \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher $event_dispatcher.
+   *   The event dispatcher.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ContainerAwareEventDispatcher $event_dispatcher) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
+    $this->eventDispatcher = $event_dispatcher;
     $this->url = 'https://paycom.credomatic.com/PayComBackEndWeb/common/requestPaycomService.go';
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+      $container->get('plugin.manager.commerce_payment_type'),
+      $container->get('plugin.manager.commerce_payment_method_type'),
+      $container->get('datetime.time'),
+      $container->get('event_dispatcher')
+    );
+  }
+
 
   /**
    * {@inheritdoc}
@@ -197,25 +229,32 @@ class Paycom extends OffsitePaymentGatewayBase {
    */
   public function onReturn(OrderInterface $order, Request $request) {
     $response = $request->query->all();
-    if ($this->validateResponse($response)) {
-      $amount = $order->getTotalPrice();
-      $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
-      if ($response['amount'] == $amount_number) {
-        $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-        $payment = $payment_storage->create([
-          'state' => 'authorization',
-          'amount' => $amount,
-          'payment_gateway' => $this->entityId,
-          'order_id' => $order->id(),
-          'test' => FALSE,
-          'remote_id' => $response['transactionid'],
-          'authorized' => REQUEST_TIME,
-        ]);
-        $payment->save();
+    try {
+      if ($this->validateResponse($response)) {
+        $amount = $order->getTotalPrice();
+        $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
+        if ($response['amount'] == $amount_number) {
+          $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+          $payment = $payment_storage->create([
+            'state' => 'authorization',
+            'amount' => $amount,
+            'payment_gateway' => $this->entityId,
+            'order_id' => $order->id(),
+            'test' => FALSE,
+            'remote_id' => $response['transactionid'],
+            'authorized' => REQUEST_TIME,
+          ]);
+          $payment->save();
+        }
+        else {
+          throw new InvalidResponseException($this->t('Amount was changed in an unauthorized way'));
+        }
       }
-      else {
-        throw new InvalidResponseException($this->t('Amount was changed in an unauthorized way'));
-      }
+    }
+    catch (PaymentGatewayException $e) {
+      // Catch exception only to dispatch event. Then throw it again.
+      $this->eventDispatcher->dispatch(CommercePaycomPaymenGatewayExceptionEvent::PAYMENT_GATEWAY_EXCEPTION, new CommercePaycomPaymenGatewayExceptionEvent($e));
+      throw $e;
     }
   }
 
