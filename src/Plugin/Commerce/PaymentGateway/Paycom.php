@@ -72,7 +72,7 @@ class Paycom extends OffsitePaymentGatewayBase {
    *   The payment method type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time.
-   * @param \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher $event_dispatcher.
+   * @param \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher $event_dispatcher
    *   The event dispatcher.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ContainerAwareEventDispatcher $event_dispatcher) {
@@ -96,7 +96,6 @@ class Paycom extends OffsitePaymentGatewayBase {
       $container->get('event_dispatcher')
     );
   }
-
 
   /**
    * {@inheritdoc}

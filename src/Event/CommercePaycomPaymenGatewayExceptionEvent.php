@@ -5,6 +5,9 @@ namespace Drupal\commerce_paycom\Event;
 use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Symfony\Component\EventDispatcher\Event;
 
+/**
+ * Commerce Paycom Payment Gateway Exception event.
+ */
 class CommercePaycomPaymenGatewayExceptionEvent extends Event {
 
   const PAYMENT_GATEWAY_EXCEPTION = 'commerce_paycom.payment_gateway_exception';
@@ -32,4 +35,5 @@ class CommercePaycomPaymenGatewayExceptionEvent extends Event {
   public function getException() {
     return $this->exception;
   }
+
 }
