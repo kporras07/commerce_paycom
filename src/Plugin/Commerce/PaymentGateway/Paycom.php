@@ -157,6 +157,7 @@ class Paycom extends OffsitePaymentGatewayBase {
         'HNL' => 'HNL',
         'NIO' => 'NIO',
         'PAB' => 'PAB',
+        'USD' => 'USD',
       ],
       '#default_value' => $this->configuration['currency'],
       '#required' => TRUE,
