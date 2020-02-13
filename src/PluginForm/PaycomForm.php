@@ -21,6 +21,11 @@ class PaycomForm extends BasePaymentOffsiteForm {
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
     $amount = $payment->getAmount();
     $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
+    
+    $type = 'auth';
+    if (!empty($form['#capture'])) {
+      $type = 'sale';
+    }
 
     $form['ccnumber'] = [
       '#type' => 'textfield',
@@ -64,7 +69,7 @@ class PaycomForm extends BasePaymentOffsiteForm {
     $form['type'] = [
       '#type' => 'hidden',
       '#value' => 'auth',
-      '#name' => 'type',
+      '#value' => $type,
     ];
     $form['key_id'] = [
       '#type' => 'hidden',
