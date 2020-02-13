@@ -68,7 +68,6 @@ class PaycomForm extends BasePaymentOffsiteForm {
     ];
     $form['type'] = [
       '#type' => 'hidden',
-      '#value' => 'auth',
       '#value' => $type,
     ];
     $form['key_id'] = [
