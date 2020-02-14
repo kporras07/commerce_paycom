@@ -21,6 +21,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use GuzzleHttp\Client;
 
 /**
  * Provides the Off-site Redirect payment gateway.
@@ -31,6 +32,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   display_label = "Paycom",
  *   forms = {
  *     "offsite-payment" = "Drupal\commerce_paycom\PluginForm\PaycomForm",
+ *     "capture-payment" = "Drupal\commerce_payment\PluginForm\PaymentCaptureForm",
+ *     "void-payment" = "Drupal\commerce_payment\PluginForm\PaymentVoidForm",
  *   },
  *   payment_method_types = {"credit_card"},
  *   credit_card_types = {
@@ -47,13 +50,19 @@ class Paycom extends OffsitePaymentGatewayBase {
    */
   protected $url;
 
-
   /**
    * Event dispatcher.
    *
    * @var \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher
    */
   protected $eventDispatcher;
+
+  /**
+   * HTTP Client.
+   *
+   * @var \GuzzleHttp\Client
+   */
+  protected $client;
 
   /**
    * Constructs a new Onsite object.
@@ -74,10 +83,13 @@ class Paycom extends OffsitePaymentGatewayBase {
    *   The time.
    * @param \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher $event_dispatcher
    *   The event dispatcher.
+   * @param \GuzzleHttp\Client $client
+   *   The http client.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ContainerAwareEventDispatcher $event_dispatcher) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ContainerAwareEventDispatcher $event_dispatcher, Client $client) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
     $this->eventDispatcher = $event_dispatcher;
+    $this->client = $client;
     $this->url = 'https://paycom.credomatic.com/PayComBackEndWeb/common/requestPaycomService.go';
   }
 
@@ -93,7 +105,8 @@ class Paycom extends OffsitePaymentGatewayBase {
       $container->get('plugin.manager.commerce_payment_type'),
       $container->get('plugin.manager.commerce_payment_method_type'),
       $container->get('datetime.time'),
-      $container->get('event_dispatcher')
+      $container->get('event_dispatcher'),
+      $container->get('http_client')
     );
   }
 
@@ -108,6 +121,29 @@ class Paycom extends OffsitePaymentGatewayBase {
       'processor_id' => '',
       'currency' => '',
     ] + parent::defaultConfiguration();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildPaymentOperations(PaymentInterface $payment) {
+    $payment_state = $payment->getState()->getId();
+    $operations = [];
+    $operations['capture'] = [
+      'title' => $this->t('Capture'),
+      'page_title' => $this->t('Capture payment'),
+      'plugin_form' => 'capture-payment',
+      'access' => $payment_state == 'authorization',
+    ];
+
+    $operations['void'] = [
+      'title' => $this->t('Void'),
+      'page_title' => $this->t('Void payment'),
+      'plugin_form' => 'void-payment',
+      'access' => $payment_state == 'authorization',
+    ];
+
+    return $operations;
   }
 
   /**
@@ -245,6 +281,15 @@ class Paycom extends OffsitePaymentGatewayBase {
             'authorized' => REQUEST_TIME,
           ]);
           $payment->save();
+          $checkout_flow = $order->checkout_flow->entity;
+          $capture = FALSE;
+          $configuration = $checkout_flow->get('configuration');
+          if (!empty($configuration['panes']['payment_process']['capture'])) {
+            $capture = TRUE;
+          }
+          if ($capture) {
+            $this->capturePayment($payment);
+          }
         }
         else {
           throw new InvalidResponseException($this->t('Amount was changed in an unauthorized way'));
@@ -410,6 +455,7 @@ class Paycom extends OffsitePaymentGatewayBase {
       'username' => $this->getUsername(),
       'type' => 'sale',
       'key_id' => $this->getKeyId(),
+      'orderid' => $payment->getOrderId(),
       'hash' => $this->getHash([
         $payment->getOrderId(),
         $amount_number,
@@ -420,7 +466,8 @@ class Paycom extends OffsitePaymentGatewayBase {
       'transactionid' => $remote_id,
       'amount' => $amount_number,
       'processor_id' => $this->getProcessorId(),
-      'ccnumber' => $remote_id,
+      // Hardcoded as per documentation.
+      'ccnumber' => '4012001011000771',
     ];
     $result = $this->doPost($parameters);
     $this->validateResponse($result);

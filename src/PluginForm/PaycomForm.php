@@ -21,13 +21,17 @@ class PaycomForm extends BasePaymentOffsiteForm {
     $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
     $amount = $payment->getAmount();
     $amount_number = number_format(round($amount->getNumber(), 2), 2, '.', '');
-    
-    $type = 'auth';
-    if (!empty($form['#capture'])) {
-      $type = 'sale';
-    }
 
-    $form['ccnumber'] = [
+    $type = 'auth';
+
+    $form['ccform'] = [
+      '#type' => 'container',
+      '#tree' => FALSE,
+      '#attributes' => [
+        'class' => ['stepform-payment__ccform'],
+      ],
+    ];
+    $form['ccform']['ccnumber'] = [
       '#type' => 'textfield',
       '#title' => t('Credit Card Number'),
       '#name' => 'ccnumber',
@@ -35,7 +39,7 @@ class PaycomForm extends BasePaymentOffsiteForm {
         'autocomplete' => 'off',
       ],
     ];
-    $form['ccexp'] = [
+    $form['ccform']['ccexp'] = [
       '#type' => 'textfield',
       '#title' => t('Credit Card Expiration'),
       '#name' => 'ccexp',
@@ -44,7 +48,7 @@ class PaycomForm extends BasePaymentOffsiteForm {
         'autocomplete' => 'off',
       ],
     ];
-    $form['cvv'] = [
+    $form['ccform']['cvv'] = [
       '#type' => 'textfield',
       '#title' => t('Credit Card CVV'),
       '#name' => 'cvv',
@@ -56,6 +60,7 @@ class PaycomForm extends BasePaymentOffsiteForm {
       '#type' => 'submit',
       '#value' => t('Submit'),
     ];
+
     $form['time'] = [
       '#type' => 'hidden',
       '#value' => REQUEST_TIME,
@@ -69,6 +74,7 @@ class PaycomForm extends BasePaymentOffsiteForm {
     $form['type'] = [
       '#type' => 'hidden',
       '#value' => $type,
+      '#name' => 'type',
     ];
     $form['key_id'] = [
       '#type' => 'hidden',
@@ -110,6 +116,8 @@ class PaycomForm extends BasePaymentOffsiteForm {
       '#type' => 'value',
       '#value' => $payment_gateway_plugin->getUrl(),
     ];
+
+    $form['submit']['#value'] = t('Finish');
 
     $form['ccnumber']['#process'] = [[get_class($this), 'processForm']];
 
